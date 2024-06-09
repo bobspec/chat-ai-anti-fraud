@@ -66,13 +66,13 @@ if prompt := st.chat_input():
     st.chat_message("user").write(prompt)
     try:
         # 构建输入
-        logging.debug(f"User input received: {prompt}")
+        logging.info(f"User input received: {prompt}")
         response, history = model.chat(tokenizer, prompt, meta_instruction=system_prompt, history=st.session_state.messages)
         # 将模型的输出添加到session_state中的messages列表中
         st.session_state.messages.append((prompt, response))
         # 在聊天界面上显示模型的输出
         st.chat_message("assistant").write(response)
-        logging.debug("Model response generated and displayed")
+        logging.info(f"Model response generated and displayed: {response}")
     except Exception as e:
-        logging.error(f"Error during model response generation: {e}")
+        logging.info(f"Error during model response generation: {e}")
         st.error(f"Error during model response generation: {e}")
