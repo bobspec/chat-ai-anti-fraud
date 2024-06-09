@@ -13,7 +13,8 @@ st.caption("🚀 A streamlit chatbot powered by InternLM2 QLora")
 
 try:
     logging.debug("Starting model download...")
-    model_dir = snapshot_download("Shanghai_AI_Laboratory/internlm2-20b", user_agent='localhost:7890')
+    # model_dir = snapshot_download("Shanghai_AI_Laboratory/internlm2-20b", user_agent='localhost:7890')
+    model_dir = snapshot_download("Shanghai_AI_Laboratory/internlm2-20b",revision='v1.1.0', user_agent='localhost:7890')
     logging.debug(f"Model downloaded to {model_dir}")
 except Exception as e:
     logging.error(f"Error during model download: {e}")
