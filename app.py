@@ -29,7 +29,7 @@ def get_model():
         logging.debug("Tokenizer loaded successfully")
 
         logging.debug("Loading model...")
-        model = AutoModelForCausalLM.from_pretrained(model_dir, torch_dtype=torch.float16, trust_remote_code=True).cuda()
+        model =  AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", trust_remote_code=True, torch_dtype=torch.float16)
         model = model.eval()
         logging.debug("Model loaded successfully")
         return tokenizer, model
@@ -67,7 +67,9 @@ if prompt := st.chat_input():
     try:
         # 构建输入
         logging.info(f"User input received: {prompt}")
-        response, history = model.chat(tokenizer, prompt, meta_instruction=system_prompt, history=st.session_state.messages)
+        # response, history = model.chat(tokenizer, prompt, history=st.session_state.messages)
+        response, history = model.chat(tokenizer, prompt, history=[])
+        logging.info(f"Model response generated and displayed: {response}")
         # 将模型的输出添加到session_state中的messages列表中
         st.session_state.messages.append((prompt, response))
         # 在聊天界面上显示模型的输出
