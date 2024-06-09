@@ -13,8 +13,7 @@ st.caption("🚀 A streamlit chatbot powered by InternLM2 QLora")
 
 try:
     logging.debug("Starting model download...")
-    # model_dir = snapshot_download("Shanghai_AI_Laboratory/internlm2-20b", user_agent='localhost:7890')
-    model_dir = snapshot_download("Shanghai_AI_Laboratory/internlm2-20b",revision='v1.1.0', user_agent='localhost:7890')
+    model_dir = snapshot_download("Shanghai_AI_Laboratory/internlm2-20b",revision='v1.1.0')
     logging.debug(f"Model downloaded to {model_dir}")
 except Exception as e:
     logging.error(f"Error during model download: {e}")
@@ -29,7 +28,7 @@ def get_model():
         logging.debug("Tokenizer loaded successfully")
 
         logging.debug("Loading model...")
-        model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", trust_remote_code=True, torch_dtype=torch.float16)
+        model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", trust_remote_code=True, torch_dtype=torch.float16,offload_folder="/path/to/offload/folder")
         model = model.eval()
         logging.debug("Model loaded successfully")
         return tokenizer, model
@@ -49,7 +48,7 @@ with st.sidebar:
     "[ChatAI反诈骗](https://gitee.com/xiangboit/chat-ai-anti-fraud)"
     # 创建一个滑块，用于选择最大长度，范围在0到1024之间，默认值为512
     max_length = st.slider("max_length", 0, 1024, 512, step=1)
-    system_prompt = st.text_input("System_Prompt", "现在你要扮演防诈骗专家")
+    system_prompt = st.text_input("System_Prompt", "现在你要扮演防诈骗专家并且和用户进行聊天，要求用户提供相关的信息，根据用户提供的信息判定用户是否遭受了诈骗并给出后续建议")
 
 # 如果session_state中没有"messages"，则创建一个包含默认消息的列表
 if "messages" not in st.session_state:
