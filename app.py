@@ -1,8 +1,9 @@
 import streamlit as st
 import logging
 # 模型下载
-from modelscope import AutoTokenizer, AutoModelForCausalLM, snapshot_download
+from modelscope import AutoTokenizer, AutoModelForCausalLM,snapshot_download
 import torch
+
 
 # 设置日志级别
 logging.basicConfig(level=logging.DEBUG)
@@ -13,7 +14,7 @@ st.caption("🚀 A streamlit chatbot powered by InternLM2 QLora")
 
 try:
     logging.debug("Starting model download...")
-    model_dir = snapshot_download("Shanghai_AI_Laboratory/internlm2-20b",revision='v1.1.0')
+    model_dir = snapshot_download('Shanghai_AI_Laboratory/internlm-chat-7b', revision='v1.0.2')
     logging.debug(f"Model downloaded to {model_dir}")
 except Exception as e:
     logging.error(f"Error during model download: {e}")
@@ -24,11 +25,11 @@ except Exception as e:
 def get_model():
     try:
         logging.debug("Loading tokenizer...")
-        tokenizer = AutoTokenizer.from_pretrained(model_dir, device_map="auto", trust_remote_code=True)
+        tokenizer = AutoTokenizer.from_pretrained(model_dir, trust_remote_code=True)
         logging.debug("Tokenizer loaded successfully")
 
         logging.debug("Loading model...")
-        model = AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", trust_remote_code=True, torch_dtype=torch.float16,offload_folder="/path/to/offload/folder")
+        model = AutoModelForCausalLM.from_pretrained(model_dir, torch_dtype=torch.float16, trust_remote_code=True).cuda()
         model = model.eval()
         logging.debug("Model loaded successfully")
         return tokenizer, model
