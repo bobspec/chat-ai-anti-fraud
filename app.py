@@ -31,9 +31,17 @@ def get_model():
         logging.debug("Loading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(model_dir, trust_remote_code=True)
         logging.debug("Tokenizer loaded successfully")
-
         logging.debug("Loading model...")
-        model =  AutoModelForCausalLM.from_pretrained(model_dir, device_map="auto", trust_remote_code=True, torch_dtype=torch.float16)
+        if torch.cuda.is_available():
+            # 如果有可用的GPU
+            device = torch.device("cuda")
+            model = AutoModelForCausalLM.from_pretrained(model_dir, trust_remote_code=True, torch_dtype=torch.float16)
+        else:
+            # 如果没有可用的GPU，使用float32并加载到CPU
+            device = torch.device("cpu")
+            model = AutoModelForCausalLM.from_pretrained(model_dir, trust_remote_code=True, torch_dtype=torch.float32)
+
+        model = model.to(device)
         model = model.eval()
         logging.debug("Model loaded successfully")
         return tokenizer, model
