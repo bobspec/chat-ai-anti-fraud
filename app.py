@@ -1,8 +1,11 @@
 import streamlit as st
 import logging
 # 模型下载
-from modelscope import AutoTokenizer, AutoModelForCausalLM,snapshot_download
+# from modelscope import AutoTokenizer, AutoModelForCausalLM,snapshot_download
+# from modelscope import snapshot_download
+from modelscope.hub.snapshot_download import snapshot_download
 import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 
 
 # 设置日志级别
@@ -14,7 +17,8 @@ st.caption("🚀 A streamlit chatbot powered by InternLM2 QLora")
 
 try:
     logging.debug("Starting model download...")
-    model_dir = snapshot_download('Shanghai_AI_Laboratory/internlm-chat-7b', revision='v1.0.2')
+    # model_dir = snapshot_download('Shanghai_AI_Laboratory/internlm-chat-7b', revision='v1.0.2')
+    model_dir = snapshot_download('Shanghai_AI_Laboratory/internlm2-chat-1_8b', revision='v1.1.0')
     logging.debug(f"Model downloaded to {model_dir}")
 except Exception as e:
     logging.error(f"Error during model download: {e}")
@@ -67,8 +71,8 @@ if prompt := st.chat_input():
     try:
         # 构建输入
         logging.info(f"User input received: {prompt}")
-        # response, history = model.chat(tokenizer, prompt, history=st.session_state.messages)
-        response, history = model.chat(tokenizer, prompt, history=[])
+        response, history = model.chat(tokenizer, prompt, meta_instruction=system_prompt,history=st.session_state.messages)
+        # response, history = model.chat(tokenizer, prompt, history=[])
         logging.info(f"Model response generated and displayed: {response}")
         # 将模型的输出添加到session_state中的messages列表中
         st.session_state.messages.append((prompt, response))
