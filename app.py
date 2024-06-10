@@ -1,8 +1,10 @@
 import streamlit as st
 import logging
 # 模型下载
-from modelscope import AutoTokenizer, AutoModelForCausalLM,snapshot_download
+# from modelscope import AutoTokenizer, AutoModelForCausalLM,snapshot_download
+from modelscope import snapshot_download
 import torch
+from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
 
 
 # 设置日志级别
