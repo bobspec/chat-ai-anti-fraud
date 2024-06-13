@@ -6,3 +6,4 @@ accelerate==0.24.1
 transformers_stream_generator==0.0.4
 safetensors
 bitsandbytes
+streamlit_image_select
