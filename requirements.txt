@@ -8,3 +8,5 @@ safetensors
 bitsandbytes
 streamlit_image_select
 streamlit_modal
+tencentcloud-sdk-python
+pillow
