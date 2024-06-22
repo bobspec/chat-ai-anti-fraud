@@ -1,31 +1,26 @@
-import streamlit as st
+import base64
+import io
+import json
 import logging
-# 模型下载
-# from modelscope import AutoTokenizer, AutoModelForCausalLM,snapshot_download
-# from modelscope import snapshot_download
-from modelscope.hub.snapshot_download import snapshot_download
+
+import streamlit as st
 import torch
-from transformers import AutoTokenizer, AutoModelForCausalLM, GenerationConfig
+from PIL import Image
+from modelscope.hub.snapshot_download import snapshot_download
+from streamlit_image_select import image_select
+from tencentcloud.common import credential
+from tencentcloud.common.exception.tencent_cloud_sdk_exception import TencentCloudSDKException
+from tencentcloud.common.profile.client_profile import ClientProfile
+from tencentcloud.common.profile.http_profile import HttpProfile
+from tencentcloud.ocr.v20181119 import ocr_client, models
+from transformers import AutoTokenizer, AutoModelForCausalLM
 
 # 设置日志级别
 logging.basicConfig(level=logging.DEBUG)
 
-# 创建一个标题和一个副标题
-st.title("💬 InternLM2-Chat-7B 防诈骗专家")
-st.caption("🚀 A streamlit chatbot powered by InternLM2 QLora")
 
-try:
-    logging.debug("Starting model download...")
-    model_dir = snapshot_download('Shanghai_AI_Laboratory/internlm2-chat-1_8b', revision='v1.1.0')
-    logging.debug(f"Model downloaded to {model_dir}")
-except Exception as e:
-    logging.error(f"Error during model download: {e}")
-    st.error(f"Error during model download: {e}")
-
-
-# 定义一个函数，用于获取模型和tokenizer
 @st.cache_resource
-def get_model():
+def get_model(model_dir):
     try:
         logging.debug("Loading tokenizer...")
         tokenizer = AutoTokenizer.from_pretrained(model_dir, trust_remote_code=True)
@@ -40,7 +35,6 @@ def get_model():
             device = torch.device("cpu")
             logging.debug("Using CPU for model loading")
             model = AutoModelForCausalLM.from_pretrained(model_dir, trust_remote_code=True, torch_dtype=torch.float32)
-
         model = model.to(device)
         model = model.eval()
         logging.debug("Model loaded successfully")
@@ -51,39 +45,206 @@ def get_model():
         return None, None
 
 
-tokenizer, model = get_model()
+def setup_sidebar():
+    st.sidebar.title("InternLM LLM")
+    st.sidebar.markdown("[InternLM](https://github.com/InternLM/InternLM.git)")
+    st.sidebar.markdown("[ChatAI反诈骗识别](https://github.com/bobspec/chat-ai-anti-fraud.git)")
 
-if tokenizer is None or model is None:
-    st.stop()  # 停止运行，如果模型加载失败
+    st.sidebar.markdown("## 输入案例内容")
+    if 'input_text' not in st.session_state:
+        st.session_state.input_text = ""
 
-with st.sidebar:
-    st.markdown("## InternLM LLM")
-    st.markdown("[InternLM](https://github.com/InternLM/InternLM.git)")
-    st.markdown("[ChatAI反诈骗](https://gitee.com/xiangboit/chat-ai-anti-fraud)")
-    max_length = st.slider("max_length", 0, 1024, 512, step=1)
-    system_prompt = st.text_input("System_Prompt",
-                                  "现在你要扮演防诈骗专家并且和用户进行聊天，要求用户提供相关的信息，根据用户提供的信息判定用户是否遭受了诈骗并给出后续建议")
+    st.session_state.user_input = st.sidebar.text_area(
+        "",
+        height=300,
+        placeholder="请输入案例内容",
+        key="input_text",
+        label_visibility='visible',
+        help="在此输入案例内容"
+    )
 
-if "messages" not in st.session_state:
-    st.session_state["messages"] = []
+    st.sidebar.markdown("## 上传相关图片")
+    if 'uploaded_files' not in st.session_state:
+        st.session_state.uploaded_files = []
 
-for msg in st.session_state.messages:
-    st.chat_message("user").write(msg[0])
-    st.chat_message("assistant").write(msg[1])
+    uploaded_files = st.sidebar.file_uploader(
+        "",
+        type=['jpg', 'jpeg', 'png'],
+        accept_multiple_files=True,
+        label_visibility='visible',
+        help="上传相关图片以辅助分析"
+    )
+    if uploaded_files:
+        st.session_state.uploaded_files = uploaded_files
 
-if prompt := st.chat_input():
-    st.chat_message("user").write(prompt)
+    st.sidebar.markdown("## 控制显示选项")
+    if 'show_image_analysis' not in st.session_state:
+        st.session_state.show_image_analysis = False
+
+    st.session_state.show_image_analysis = st.sidebar.checkbox(
+        "显示图片解析结果",
+        value=st.session_state.show_image_analysis,
+        help="开启后显示所选择的图片及其文本描述"
+    )
+
+
+def process_with_tencent_ocr(images, secret_id, secret_key):
+    """
+    使用腾讯云OCR服务处理图像。
+    Args:
+        text (str): 用户输入的文本。
+        images (list): 用户上传的图像文件列表。
+        secret_id (str): 腾讯云API密钥ID。
+        secret_key (str): 腾讯云API密钥。
+    Returns:
+        dict: 包含处理结果的字典，如果请求失败，则返回错误信息。
+    """
     try:
-        logging.info(f"User input received: {prompt}")
+        cred = credential.Credential(secret_id, secret_key)
+        httpProfile = HttpProfile()
+        httpProfile.endpoint = "ocr.tencentcloudapi.com"
 
-        # 拼接系统提示词和用户输入
-        full_prompt = f"{system_prompt}\n{prompt}"
+        clientProfile = ClientProfile()
+        clientProfile.httpProfile = httpProfile
+        client = ocr_client.OcrClient(cred, "ap-guangzhou", clientProfile)
 
-        response, history = model.chat(tokenizer, full_prompt, history=st.session_state.messages)
-        logging.info(f"Model response generated: {response}")
+        # 处理每张图片
+        ocr_results = []
+        for idx, file in enumerate(images):
+            image = Image.open(file)
+            buffered = io.BytesIO()
+            image.save(buffered, format="JPEG")
+            img_str = base64.b64encode(buffered.getvalue()).decode()
 
-        st.session_state.messages.append((prompt, response))
-        st.chat_message("assistant").write(response)
+            req = models.GeneralBasicOCRRequest()
+            params = {
+                "ImageBase64": img_str
+            }
+            req.from_json_string(json.dumps(params))
+            resp = client.GeneralBasicOCR(req)
+            result = json.loads(resp.to_json_string())
+
+            text_detected = "\n".join([item["DetectedText"] for item in result["TextDetections"]])
+            ocr_results.append({
+                "image": file,
+                "text": f"图片{idx + 1}识别内容:\n{text_detected}\n"
+            })
+
+        return {'ocr_results': ocr_results}
+
+    except TencentCloudSDKException as err:
+        logging.error(f"Tencent Cloud SDK Exception: {err}")
+        return {'error': err, 'ocr_results': []}
+
+
+def analyze_text(text, ocr_results):
+    """
+    对输入的文本进行分析。
+    Args:
+        text (str): 用户输入的文本。
+    Returns:
+        str: 分析结果。
+    """
+    try:
+        logging.debug("Starting model download...")
+        model_dir = snapshot_download('EricSC/Fanzha1_8B', revision='v1.0.0')
+        logging.debug(f"Model downloaded to {model_dir}")
     except Exception as e:
-        logging.error(f"Error during model response generation: {e}")
-        st.error(f"Error during model response generation: {e}")
+        logging.error(f"Error during model download: {e}")
+        st.error(f"Error during model download: {e}")
+        model_dir = None
+
+    if model_dir:
+        tokenizer, model = get_model(model_dir)
+    else:
+        tokenizer, model = None, None
+
+    if tokenizer is None or model is None:
+        return "模型加载失败"
+    ocr_texts = "\n".join([res["text"] for res in ocr_results])
+    full_prompt = f"案例描述：\n{text}\n相关聊天记录：\n{ocr_texts}"
+    logging.info(f"full_prompt message: {full_prompt}")
+    response1, history = model.chat(tokenizer, full_prompt, meta_instruction="是否是诈骗")
+    logging.info(f"mode response1: {response1}")
+    response2, history = model.chat(tokenizer, full_prompt, meta_instruction="案件详情")
+    logging.info(f"mode response2: {response2}")
+    response3, history = model.chat(tokenizer, full_prompt, meta_instruction="提供相关建议")
+    logging.info(f"mode response3: {response3}")
+
+    markdown_output = f"""
+    #### 判定结果
+    {response1}
+
+    #### 案件详情
+    {response2}
+
+    #### 建议
+    {response3}
+    """
+    return {'result': markdown_output}
+
+
+def display_results(result, analysis_result):
+    """
+    显示解析结果和图片选择器。
+    Args:
+        result (dict): OCR处理结果。
+        analysis_result (str): 文本分析结果。
+    """
+    st.markdown(analysis_result.get('result', 'No result returned'))
+
+    if result.get('ocr_results'):
+        st.markdown("#### 图片内容")
+        selected_image = image_select(
+            label="图片列表",
+            images=[Image.open(res['image']) for res in result['ocr_results']],
+            captions=[f"图片{idx + 1}" for idx in range(len(result['ocr_results']))],
+            use_container_width=True,
+            return_value="original",
+            key="image_select"
+        )
+
+        if selected_image != st.session_state.get('selected_image'):
+            st.session_state.selected_image = selected_image
+        if st.session_state.show_image_analysis:
+            if 'selected_image' in st.session_state and st.session_state.selected_image:
+                for res in result['ocr_results']:
+                    image = Image.open(res['image'])
+                    if image == st.session_state.selected_image:
+                        st.image(image, caption="选中的图片", use_column_width=True)
+                        st.markdown(res['text'])
+                        break
+
+
+def main():
+    st.title("案例分析展示")
+    st.caption("使用模型进行案例分析")
+    setup_sidebar()
+
+    if st.sidebar.button('提交', key='submit_button', help="点击提交"):
+        if st.session_state.user_input or st.session_state.uploaded_files:
+            secret_id = 'x'
+            secret_key = 'x'
+
+            with st.spinner('正在处理中，请稍候...'):
+                try:
+                    result = process_with_tencent_ocr(st.session_state.uploaded_files,
+                                                      secret_id, secret_key)
+                    logging.info(result)
+                except:
+                    pass
+                analysis_result = analyze_text(st.session_state.user_input, result['ocr_results'])
+
+            st.session_state.result = result
+            st.session_state.analysis_result = analysis_result
+            # 清除之前选中的图片，避免干扰
+            st.session_state.selected_image = None
+            st.session_state.display_result = True
+
+
+    if 'analysis_result' in st.session_state and st.session_state.analysis_result:
+        display_results(st.session_state.result, st.session_state.analysis_result)
+
+
+if __name__ == "__main__":
+    main()
