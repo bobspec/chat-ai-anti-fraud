@@ -51,7 +51,8 @@ Chat-反诈模型是利用反诈相关的数据集进行模型训练的语言模
 如何学习大模型部署和微调请参考：[开源大模型食用指南](https://github.com/datawhalechina/self-llm) 以及 [书生·浦语大模型实战营课程](https://github.com/InternLM/tutorial)
 
 Chat反诈模型全流程如图所示：
-
+![6f4e7e98b07ab2a28d038f1b77a305c.png](./image/e0847fdc5d594965e29b5e8b146e639.png)
+![f7ab28b16f19bcb18f0c03f132b77ab.png](./image/f7ab28b16f19bcb18f0c03f132b77ab.png)
 
 ## 模型及体验地址
 
