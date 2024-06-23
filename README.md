@@ -1,28 +1,44 @@
 
-# Chat-反诈模型
+<div align="center">
+<img src="./image/logo.png" width="200"/>
+  <div align="center">
+    <b><font size="5">Chat-反诈</font></b>
+</div>
+
+[![license][license-image]][license-url]
+[![evaluation][evaluation-image]][evaluation-url]
 
 ## Chat-反诈模型
 
 [OpenXLab](https://openxlab.org.cn/models/detail/Eric-sc/Fanzha1_8B/tree/main) |  [ModelScope](https://www.modelscope.cn/models/EricSC/Fanzha1_8B) | [Github](https://github.com/bobspec/chat-ai-anti-fraud.git)
 
-## 目录
-### 简介
-### 模型及体验地址
-### 数据集
-### 使用方法
-### 快速开始
-### 重新训练
-### 环境搭建
-### Transformers微调
-### XTuner微调
-### 部署
-### OpenXLab 部署 Chat-反诈模型
-### 测评与量化
-#### OpenCompass 评测
-## 致谢
-### 项目成员
+[license-image]: ./image/license.svg
+[evaluation-image]: ./image/compass_support.svg
+[license-url]: ./LICENSE
+[evaluation-url]: https://github.com/internLM/OpenCompass/
+</div>
 
-## 📖 简介
+## 📝目录
+
+- Chat-反诈
+  - [📝目录](#目录)
+  - [📖 简介](#简介)
+  - [🔗 模型及体验地址](#模型及体验地址)
+  - [🚀 News](#-news)
+  - [🧾 数据集](#数据集)
+  - [🛠️ 使用方法](#使用方法)
+    - [快速开始](#快速开始)
+    - [重新训练](#重新训练)
+      - [环境搭建](#环境搭建)
+      - [XTuner微调](#XTuner微调)
+    - [部署](#部署)
+    - [测评与量化](#测评与量化)
+      - [OpneCompass 评测](#OpenCompass评测)
+  - [💕 致谢](#致谢)
+    - [项目成员](#项目成员)
+    - [特别感谢](#特别感谢)
+
+## 简介
 Chat-反诈模型是利用反诈相关的数据集进行模型训练的语言模型，基于 InternLM2 进行 LoRA 微调得到的诈骗信息识别及分析的语言模型。
 反诈模型的开发源于我们观察到遭受到诈骗的人群越来越趋向于青少年，而诈骗手段层出不穷，很多人因缺乏防范意识和应对技巧，轻易成为诈骗分子的目标，蒙受巨大的财产损失和精神伤害。尽管社会各界不断加强反诈提示和宣传，帮助人们提高警惕，但依然有大量人群未能及时辨别出诈骗陷阱。
 
@@ -37,7 +53,7 @@ Chat-反诈模型是利用反诈相关的数据集进行模型训练的语言模
 Chat反诈模型全流程如图所示：
 
 
-## 🔗 模型及体验地址
+## 模型及体验地址
 
 ### 体验地址：
 
@@ -49,11 +65,13 @@ Chat反诈模型全流程如图所示：
 #### ModelScope
 1.8B: [ModelScope](https://www.modelscope.cn/models/EricSC/Fanzha1_8B)
 
-**6月21日，完成 InternLM2-chat-1_8B模型微调，模型已上传ModelScop2，大家可以来下载**
+## 🚀 News
+
+***2024年6月21日，完成 [InternLM2-chat-1_8B模型的全量微调](https://openxlab.org.cn/models/detail/Eric-sc/Fanzha1_8B/tree/main)***
 
 ## 数据集
 
-Chat-反诈模型 数据集采用各种网络诈骗案例和用户的聊天记录，共计 3000 余条，数据集样例：
+Chat-反诈模型 数据集采用各种网络诈骗案例和用户的聊天记录，共计 3000 余条,位于datasets文件夹下.数据集样例：
 ```
 {
         "conversation": [
@@ -120,7 +138,8 @@ cd train/
 ```
 python model_download.py
 ```
-##### XTuner微调（相关路径因服务器不同请自行变更路径）
+##### XTuner微调
+相关路径因服务器不同请自行变更路径，
 使用 XTuner 进行微调，具体脚本可参考internlm2_chat_7b_qlora_oasst1_e3_copy.py，该脚本在train文件夹下。脚本内有较为详细的注释。
 ```
 pip install xtuner
@@ -132,7 +151,6 @@ mkdir huggingface
 xtuner convert pth_to_hf ./xtmodel/internlm2_chat_7b_qlora_oasst1_e3_copy.py ./xtmodel/epoch_3.pth ./huggingface/
 xtuner convert merge ./Shanghai_AI_Laboratory/internlm2-chat-1_8b/ ./huggingface/ ./fan_model
 ```
-
 ##### 测试
 ```
 xtuner chat ./fan_model/ --prompt-template internlm2_chat
@@ -142,8 +160,15 @@ xtuner chat ./fan_model/ --prompt-template internlm2_chat
 tar -zcvf fan_model.targz fan_model/
 ```
 
+### 部署
+购买具有GPU的服务器,运行以下程序
+```
+git clone https://github.com/bobspec/chat-ai-anti-fraud.git
+python start.py
+```
+
 ### 测评与量化
-OpenCompass 评测
+### OpenCompass评测
 #### 安装 OpenCompass
 ```
 git clone https://github.com/open-compass/opencompass
