@@ -68,7 +68,7 @@ Chat反诈模型全流程如图所示：
 
 ## 🚀 News
 
-***2024年6月21日，完成 [InternLM2-chat-1_8B模型的全量微调](https://openxlab.org.cn/models/detail/Eric-sc/Fanzha1_8B/tree/main)***
+***2024年6月21日，完成 [InternLM2-chat-1_8B模型的微调](https://openxlab.org.cn/models/detail/Eric-sc/Fanzha1_8B/tree/main)***
 
 ## 数据集
 
