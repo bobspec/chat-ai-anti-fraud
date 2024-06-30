@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.DEBUG)
 current_dir = os.path.dirname(os.path.abspath(__file__))
 try:
     logging.debug("Starting model download...")
-    model_dir = snapshot_download('EricSC/Fanzha1_8B', revision='v1.0.0')
+    model_dir = snapshot_download('EricSC/Fanzha1_8B', revision='v1.4.0')
     logging.debug(f"Model downloaded to {model_dir}")
 except Exception as e:
     logging.error(f"Error during model download: {e}")
