@@ -57,6 +57,7 @@ Chat反诈模型全流程如图所示：
 ## 模型及体验地址
 
 ### 体验地址：
+https://openxlab.org.cn/apps/detail/yuntiankong/chat-ai-anti-fraud
 
 ### Chat-反诈模型 下载地址：
 
